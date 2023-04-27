@@ -158,7 +158,7 @@ The RViz buttons are set up to publish to the following topics:
 - “2D Pose Estimate” → `/initialpose`
 - “Publish Point” → `/clicked_point`
 
-NOTE: The path_planning ROS package is called “`lab6`”, so all nodes should be launched/run with this name (eg. `roslaunch lab6 build_trajectory.launch`).
+NOTE: The path_planning ROS package is called “`citydriving`”, so all nodes should be launched/run with this name (eg. `roslaunch citydriving build_trajectory.launch`).
 
 **Map selection**: In this lab, you are asked to plan paths in the Stata Basement environment. By default, running `roslaunch racecar_simulator simulate.launch` will load the old wall-following environment from lab 2 and 3. To change the map used by the `racecar_simulator`, follow these steps:
 
@@ -240,7 +240,7 @@ You will receive information about the location of obstacles in the form of an _
 
 Search algorithms often tend to cut corners close since they are attempting to minimize distance or time. Sometimes the path it chooses will be collision free in your domain space representation, however, in real life, the path is infeasible for the car because of its dimensions (a car is not a point mass). Additionally, the close-cut corners of the path can be problematic for the pure pursuit controller, which also will attempt to cut corners.  
 
-![Stata Basement Dilated](./media/MorphDilationLab6.jpg)
+![Stata Basement Dilated](./media/MorphDilationcitydriving.jpg)
 
 
 Provided basement map (left) and eroded map (right). Disk element, 10px radius.
@@ -294,9 +294,9 @@ Like tuning gains for a PID to change the behavior, you may want to change your 
 
 We have provided utility functions to help build and load trajectories (piecewise linear segments; see `utils.py` to understand the `LineTrajectory` Class further) so that your team can parallelize and test pure pursuit without relying on trajectory outputs from path planning. These utilities are RViz-based.
 
-*Trajectory Builder*: Run `roslaunch lab6 build_trajectory.launch` to build the trajectory. You can build trajectories using the “Publish Point” button in RViz. The `.traj` file will be saved in the `/trajectories` folder with a timestamp (so they won’t overwrite each other). A trajectory will not be saved/published unless it has >= 3 points. You can visualize this trajectory in RViz under the “`/built_trajectory/path`” topic.
+*Trajectory Builder*: Run `roslaunch citydriving build_trajectory.launch` to build the trajectory. You can build trajectories using the “Publish Point” button in RViz. The `.traj` file will be saved in the `/trajectories` folder with a timestamp (so they won’t overwrite each other). A trajectory will not be saved/published unless it has >= 3 points. You can visualize this trajectory in RViz under the “`/built_trajectory/path`” topic.
 
-*Trajectory Loader*: Run `roslaunch lab6 load_trajectory.launch` to load the trajectory. This will visualize and publish (to “`/loaded_trajectory/path`” topic, which you can listen to in pure pursuit). A default trajectory for the Stata basement map has been provided in the `/trajectories` folder. Edit the `load_trajectory` launch file to load specific trajectories you built with the trajectory builder. Note, there is some uniqueness to this utility in that it publishes exactly once, so make sure you add the visualization topics and save them after running `load_trajectory` the first time, then for all successive runs you should be able to see the visualization. 
+*Trajectory Loader*: Run `roslaunch citydriving load_trajectory.launch` to load the trajectory. This will visualize and publish (to “`/loaded_trajectory/path`” topic, which you can listen to in pure pursuit). A default trajectory for the Stata basement map has been provided in the `/trajectories` folder. Edit the `load_trajectory` launch file to load specific trajectories you built with the trajectory builder. Note, there is some uniqueness to this utility in that it publishes exactly once, so make sure you add the visualization topics and save them after running `load_trajectory` the first time, then for all successive runs you should be able to see the visualization. 
 
 The information published to the “`/loaded_trajectory/path`”, “`/built_trajectory/path`”, “`/planned_trajectory/path`” namespace topics are simply to ease visualization. Your pure pursuit code should follow trajectories published to the “`/trajectory/current`” topic, which takes PoseArray messages. The `LineTrajectory.toPoseArray()` and `LineTrajectory.fromPoseArray()` functions have been provided to allow you to convert between these types.
 

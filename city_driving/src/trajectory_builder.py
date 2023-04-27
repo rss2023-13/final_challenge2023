@@ -13,8 +13,8 @@ class BuildTrajectory(object):
     """
     def __init__(self):
         rospack = rospkg.RosPack()
-        lab6_path = rospack.get_path("lab6")
-        self.save_path = os.path.join(lab6_path+"/trajectories/", time.strftime("%Y-%m-%d-%H-%M-%S") + ".traj") #%Y-%m-%d-%H-%M-%S
+        citydriving_path = rospack.get_path("citydriving")
+        self.save_path = os.path.join(citydriving_path+"/trajectories/", time.strftime("%Y-%m-%d-%H-%M-%S") + ".traj") #%Y-%m-%d-%H-%M-%S
         self.trajectory = LineTrajectory("/built_trajectory")
         self.data_points = []
         self.count = 0
