@@ -12,6 +12,8 @@ from scipy import ndimage
 from std_msgs.msg import Header
 import cv2
 
+NUM_GOALS = 1
+
 class PathPlan(object):
     """ Listens for goal pose published by RViz and uses it to plan a path from
     current car pose.
@@ -23,7 +25,7 @@ class PathPlan(object):
         self.map_width = 0
         self.map_resolution = None
         self.current_pose = None
-        self.goal_pose = None
+        self.goal_pose = [] # list of goal poses
 
         self.run_planner = True # set this to False when doing path_collision_check interpolation testing
 
@@ -116,13 +118,17 @@ class PathPlan(object):
 
     def goal_cb(self, msg):
         # print("setting goal + running plan_path")
-        self.goal_pose = (msg.pose.position.x, msg.pose.position.y) 
+        if len(self.goal_pose) == NUM_GOALS: # clear out if replanning
+            self.goal_pose = []
+
+        self.goal_pose.append((msg.pose.position.x, msg.pose.position.y))
 
         self.trajectory.clear()
         self.parents = {}
 
-        if self.run_planner == True:
-            self.plan_path(self.current_pose, self.goal_pose, step_size = 4, neighbor_radius = 6)
+        if self.run_planner == True and len(self.goal_pose) == NUM_GOALS:
+            # self.plan_path(self.current_pose, self.goal_pose, step_size = 4, neighbor_radius = 6)
+            self.plan_multi_stop_path(self.current_pose, self.goal_pose, step_size = 4, neighbor_radius = 6)
 
     def cell_to_world(self, u, v):
         '''convert from map frame to world frame'''
@@ -344,19 +350,28 @@ class PathPlan(object):
             reverse_path.append(current_node)
 
         print("path reconstructed, is", len(reverse_path), "points long")
-        for pt in reverse_path[::-1]: # populate trajectory object
+
+        return reverse_path 
+
+
+    def plan_multi_stop_path(self, start, goals):
+        ''' generate path that goes through points p1, p2, ..., pk points
+        plan trajectoris for p1 - p2, p2 - p3, ... pk-1 - pk and connect them together 
+        input: start is start point, goals is list of points that the path should go through
+        output: none, but final trajectory should be published '''
+        path = []
+        points = [start] + goals
+        print("number of goals:", len(goals))
+        for i in range(len(points) - 1, 1, -1): #plan path in reverse (from end to start)
+            path.append(self.plan_path(start_point = points[i], end_point = points[i-1], step_size = 4, neighbor_radius = 6))
+            print("path", i, "done")
+
+        for pt in path: # populate trajectory object
             point_obj = Point(x=pt[0], y=pt[1])
             self.trajectory.addPoint(point_obj)
 
-        # self.trajectory.addPoint(Point(x=0,y=0))
-        # self.trajectory.addPoint(Point(x=1,y=0))
-        # self.trajectory.addPoint(Point(x=0,y=1))
-                    
-
         # publish trajectory
         self.traj_pub.publish(self.trajectory.toPoseArray())
-
-        
 
         # visualize trajectory Markers
         self.trajectory.publish_viz()
@@ -366,7 +381,7 @@ if __name__=="__main__":
     rospy.init_node("path_planning")
     pf = PathPlan()
     
-    while pf.map == None or pf.goal_pose == None or pf.current_pose == None:
+    while pf.map == None or len(pf.goal_pose) < NUM_GOALS or pf.current_pose == None:
         pass
     print("these are map dims:", pf.map_height, pf.map_width)
     # pf.plan_path(pf.current_pose, pf.goal_pose, pf.map, None)
