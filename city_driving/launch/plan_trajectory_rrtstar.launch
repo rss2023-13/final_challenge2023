@@ -1,6 +1,0 @@
-<launch>
-	<node pkg="citydriving" type="path_planning_rrtstar.py" name="Trajectory_planner" output="screen">
-		<!-- <param name="odom_topic" value="/pf/pose/odom"/> for realworld -->
-        <param name="odom_topic" value="/odom"/> 
-	</node>
-</launch>
