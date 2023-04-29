@@ -11,7 +11,7 @@ hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 # lower_white = np.array([int(70 / 360 * 179),int(0 / 100 * 255), int(80 / 100 * 255)])
 # upper_white = np.array([int(130 / 360 * 179),int(20 / 100 * 255),int(100 / 100 * 255)])
 
-lower_white = np.array([170, 170, 170])
+lower_white = np.array([190, 190, 190])
 upper_white = np.array([255, 255, 255])
 
 # Create a mask. Threshold the HSV image to get only yellow colors
