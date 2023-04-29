@@ -76,9 +76,9 @@ def draw_lines(img, filtered_lines, img_width):
             pt2 = (int(x0 - img_width*(-b)), int(y0 - img_width*(a)))
             cv2.line(cdst, pt1, pt2, (0,0,255), 3, cv2.LINE_AA)
     
-    cv2.imshow("Source", img)
-    cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
-    cv2.waitKey()
+    # cv2.imshow("Source", img)
+    # cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
+    # cv2.waitKey()
 
 def filter_lines(lines):
     """
@@ -93,12 +93,20 @@ def filter_lines(lines):
                 good_lines.append(line)
     return good_lines
 
+def determine_lookahead_point(image, lines):
+    """
+    Given a set of good lines, determine a candidate for the lookahead point.
+    """
+    DESIRED_Y = 0
+
 # read in test images for our hough transform
 for i in range(7):
     img_num = i+1
-    img_orig = cv2.imread(f"phone_johnson_photos/{img_num}.jpg")
+    img_orig = cv2.imread("phone_johnson_photos/" + str(img_num) + ".jpg")
 
     lines = get_lines(img_orig)
     good_lines = filter_lines(lines)
     img_width = 5000 # Change this for the car
-    draw_lines(img_orig, good_lines, img_width)
+    print("IMAGE NUMBER " + str(i+1))
+    print(np.array(good_lines))
+    # draw_lines(img_orig, good_lines, img_width)
