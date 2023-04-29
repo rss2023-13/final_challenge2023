@@ -24,14 +24,26 @@ def image_print(img):
 	cv2.destroyAllWindows()
 
 # read in a test image
-img_num = 3
-img_orig = cv2.imread(f"phone_johnson_photos/{img_num}.jpg")
+img_num = 1
+img_orig = cv2.imread(f"{img_num}.jpg")
 img = np.copy(img_orig)
+
+lower_white = np.array([170, 170, 170])
+upper_white = np.array([255, 255, 255])
+
+# Create a mask. Threshold the HSV image to get only yellow colors
+img_edges = cv2.inRange(img, lower_white, upper_white)
+
+
+
 
 # First blur the image a bit for edge detection purposes
 kernel_width = 5
 kernel = np.ones((kernel_width,kernel_width),np.float32)/(kernel_width*kernel_width)
-img = cv2.filter2D(img,-1,kernel)
+# kernel = np.ones((kernel_width,kernel_width),np.float32)
+img_edges = cv2.filter2D(img_edges,-1,kernel)
+
+# image_print(img_edges)
 
 # Next mask out the pixels which are not white since the lanes are approximately white
 # ret,img_masked = cv2.threshold(img,165,255,cv2.THRESH_TOZERO)
@@ -40,9 +52,11 @@ img = cv2.filter2D(img,-1,kernel)
 # edge detection
 min_thresh = 150
 max_thresh = 200
-img_edges = cv2.Canny(img,min_thresh,max_thresh)
+img_edges = cv2.Canny(img_edges,min_thresh,max_thresh)
 
-# Cut out the top portion of the image
+# image_print(img_edges)
+
+# # Cut out the top portion of the image
 mask_portion = 0.7
 mask = np.zeros_like(img_edges)
 mask[int(mask_portion * mask.shape[0]):] = 1
@@ -73,7 +87,7 @@ if lines is not None and draw_lines:
         pt2 = (int(x0 - img_width*(-b)), int(y0 - img_width*(a)))
         cv2.line(cdst, pt1, pt2, (0,0,255), 3, cv2.LINE_AA)
 
-cv2.imshow("Source", img)
+cv2.imshow("Source", img_edges)
 cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
 cv2.waitKey()
 
