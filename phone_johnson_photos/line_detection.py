@@ -28,12 +28,9 @@ def get_lines(img):
     Returns the list of lines in the images computed by the Hough transform
     """
     # First blur the image a bit for edge detection purposes
-    num_blur_times = 1
     kernel_width = 11
     kernel = np.ones((kernel_width,kernel_width),np.float32)/(kernel_width*kernel_width)
-    # kernel = np.ones((kernel_width,kernel_width),np.float32)
-    for i in range(num_blur_times):
-        img = cv2.filter2D(img,-1,kernel)
+    img = cv2.filter2D(img,-1,kernel)
 
     # Create a mask. Threshold the RGB image to get only the white pixels
     lower_white = np.array([170, 170, 170])
