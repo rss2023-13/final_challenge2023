@@ -64,6 +64,7 @@ def draw_lines(img, filtered_lines, img_width):
     Draw the lines given by the hough transform
     """
     cdst = np.copy(img)
+    k = img_width
     if filtered_lines is not None:
         for i in range(0, len(filtered_lines)):
             rho = filtered_lines[i][0][0]
@@ -72,13 +73,11 @@ def draw_lines(img, filtered_lines, img_width):
             b = np.sin(theta)
             x0 = a * rho
             y0 = b * rho
-            pt1 = (int(x0 + img_width*(-b)), int(y0 + img_width*(a)))
-            pt2 = (int(x0 - img_width*(-b)), int(y0 - img_width*(a)))
+            pt1 = (int(x0 + k*(-b)), int(y0 + k*(a)))
+            pt2 = (int(x0 - k*(-b)), int(y0 - k*(a)))
             cv2.line(cdst, pt1, pt2, (0,0,255), 3, cv2.LINE_AA)
     
-    # cv2.imshow("Source", img)
-    # cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
-    # cv2.waitKey()
+    return cdst
 
 def filter_lines(lines):
     """
@@ -87,26 +86,59 @@ def filter_lines(lines):
     """
     good_lines = []
     for line in lines:
-        if line is not None:
-            theta = line[0][1] * 180/np.pi
-            if (theta > 105 or theta < 75):
-                good_lines.append(line)
+        theta = line[0][1] * 180/np.pi
+        if (theta > 105 or theta < 75):
+            good_lines.append(line)
     return good_lines
 
-def determine_lookahead_point(image, lines):
+def determine_lookahead_point(img_height, lines):
     """
     Given a set of good lines, determine a candidate for the lookahead point.
     """
-    DESIRED_Y = 0
+    y_desired = int(2/3 * img_height)
+    line_x_coordinates = []
+    for line in lines:
+        rho = line[0][0]
+        theta = line[0][1]
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x_shift_amt = (y_desired - y0)/a
+        x_coord = x0 + x_shift_amt * (-b)
+        line_x_coordinates.append(x_coord)
+    # Take "unique" x coordinates to avoid double counting lines
+    good_x_coordinates = []
+    dist_tol = 20
+    for x_coord in line_x_coordinates:
+        add_this_coord = True
+        for good_x_coord in good_x_coordinates:
+            if np.abs(good_x_coord - x_coord) < dist_tol:
+                add_this_coord = False
+        if add_this_coord:
+            good_x_coordinates.append(x_coord)
+    print(good_x_coordinates)
+    return int(np.mean(good_x_coordinates)), y_desired
 
 # read in test images for our hough transform
 for i in range(7):
+    # Load the image
     img_num = i+1
     img_orig = cv2.imread("phone_johnson_photos/" + str(img_num) + ".jpg")
 
+    # Get filtered lines
     lines = get_lines(img_orig)
     good_lines = filter_lines(lines)
-    img_width = 5000 # Change this for the car
+
     print("IMAGE NUMBER " + str(i+1))
-    print(np.array(good_lines))
-    # draw_lines(img_orig, good_lines, img_width)
+    # Visualize the lines
+    img_width = 5000 # Change this for the car
+    cdst = draw_lines(img_orig, good_lines, img_width)
+
+    # Visualize the lookahead point
+    img_height = img_orig.shape[0]
+    x_lookahead, y_lookahead = determine_lookahead_point(img_height, good_lines)
+    lookahead_img = cv2.circle(cdst, (x_lookahead, y_lookahead), radius=10, color=(0,0,0), thickness=-1)
+    cv2.imshow("Lookahead", lookahead_img)
+    cv2.waitKey()
+    # print(x_lookahead, y_lookahead)
