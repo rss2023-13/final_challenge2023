@@ -59,15 +59,15 @@ def get_lines(img):
 
     return lines
 
-def draw_lines(img, lines, img_width):
+def draw_lines(img, filtered_lines, img_width):
     """
     Draw the lines given by the hough transform
     """
     cdst = np.copy(img)
-    if lines is not None:
-        for i in range(0, len(lines)):
-            rho = lines[i][0][0]
-            theta = lines[i][0][1]
+    if filtered_lines is not None:
+        for i in range(0, len(filtered_lines)):
+            rho = filtered_lines[i][0][0]
+            theta = filtered_lines[i][0][1]
             a = np.cos(theta)
             b = np.sin(theta)
             x0 = a * rho
@@ -80,11 +80,25 @@ def draw_lines(img, lines, img_width):
     cv2.imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst)
     cv2.waitKey()
 
+def filter_lines(lines):
+    """
+    Given all the lines from the Hough transform, pick only the lines that
+    could plausibly be a lane
+    """
+    good_lines = []
+    for line in lines:
+        if line is not None:
+            theta = line[0][1] * 180/np.pi
+            if (theta > 105 or theta < 75):
+                good_lines.append(line)
+    return good_lines
+
 # read in test images for our hough transform
-for i in range(1,8):
-    img_num = i
+for i in range(7):
+    img_num = i+1
     img_orig = cv2.imread(f"phone_johnson_photos/{img_num}.jpg")
 
     lines = get_lines(img_orig)
+    good_lines = filter_lines(lines)
     img_width = 5000 # Change this for the car
-    draw_lines(img_orig, lines, img_width)
+    draw_lines(img_orig, good_lines, img_width)
