@@ -8,11 +8,13 @@ import rospkg
 import time, os
 import tf.transformations as tf
 from utils import LineTrajectory
-from scipy import ndimage
+# from scipy import ndimage
+from scipy.interpolate import UnivariateSpline
+
 from std_msgs.msg import Header
 import cv2
 
-NUM_GOALS = 1
+NUM_GOALS = 6
 
 class PathPlan(object):
     """ Listens for goal pose published by RViz and uses it to plan a path from
@@ -128,7 +130,10 @@ class PathPlan(object):
 
         if self.run_planner == True and len(self.goal_pose) == NUM_GOALS:
             # self.plan_path(self.current_pose, self.goal_pose, step_size = 4, neighbor_radius = 6)
-            self.plan_multi_stop_path(self.current_pose, self.goal_pose, step_size = 4, neighbor_radius = 6)
+            print("running planner")
+            self.plan_multi_stop_path(self.current_pose, self.goal_pose)
+        else:
+            print("need more points", len(self.goal_pose), "of", NUM_GOALS)
 
     def cell_to_world(self, u, v):
         '''convert from map frame to world frame'''
@@ -321,8 +326,8 @@ class PathPlan(object):
                             self.costs[neighbor] = rewired_cost
                 
                 # end condition check
-                if current_iter == max_iter - 1 or (not self.path_collision_check(node_new, end_point)
-                                                and np.linalg.norm(np.array(node_new)-np.array(end_point))<step_size):
+                if current_iter == max_iter - 1 or (not self.path_collision_check(node_new, end_point)):
+                                                #and np.linalg.norm(np.array(node_new)-np.array(end_point))<step_size):
                     goal_reached = True
                     self.vertex_pub.publish(self.points)
                     # print('final', self.points, goal_reached, current_iter)
@@ -331,7 +336,7 @@ class PathPlan(object):
                     # print stats
                     print("path search ended, used iterations:", current_iter)
                     print("path length:", self.costs[node_new] + np.linalg.norm(np.array(node_new) - np.array(end_point)))
-                    print("from", start_point, "to", end_point)
+                    # print("from", start_point, "to", end_point)
 
                     break
 
@@ -361,12 +366,30 @@ class PathPlan(object):
         output: none, but final trajectory should be published '''
         path = []
         points = [start] + goals
-        print("number of goals:", len(goals))
-        for i in range(len(points) - 1, 1, -1): #plan path in reverse (from end to start)
-            path.append(self.plan_path(start_point = points[i], end_point = points[i-1], step_size = 4, neighbor_radius = 6))
+        print("number of goals:", len(goals), points)
+        for i in range(len(points) - 1, 0, -1): #plan path in reverse (from end to start)
+            print("planning from", points[i], "to", points[i-1])
+            new_segment = self.plan_path(start_point = points[i], end_point = points[i-1], step_size = .7, neighbor_radius = 1)
+            if path == []:
+                path = new_segment
+            else:
+                path = new_segment[:-1] + path
+            
             print("path", i, "done")
 
-        for pt in path: # populate trajectory object
+        # # get spline
+        # all_x, all_y = zip(*path)
+        # xs = np.linspace(min(all_x), max(all_x), 25)
+        # spl = UnivariateSpline(all_x, all_y)
+        # y_spline = spl(xs)
+        # spl.set_smoothing_factor(0.8)
+
+        # for i in range(len(xs)): # use spline path
+        #     point_obj = Point(x=xs[i], y=y_spline[i])
+        #     self.trajectory.addPoint(point_obj)            
+        
+        
+        for pt in path: # populate trajectory object # use normal path
             point_obj = Point(x=pt[0], y=pt[1])
             self.trajectory.addPoint(point_obj)
 

@@ -20,7 +20,7 @@ METERS_PER_INCH = 0.0254
 INCHES_PER_METER = 1 / METERS_PER_INCH
 
 # PIXEL_TOPIC = '/zed/zed_node/rgb/image_rect_color_mouse_left'
-PIXEL_TOPIC = "/relative_cone_px"
+PIXEL_TOPIC = "/stop_sign"
 
 
 
@@ -61,7 +61,7 @@ PTS_GROUND_PLANE = [[20, -5.125],
 class HomographyTransformer:
     def __init__(self):
         self.cone_px_sub = rospy.Subscriber(PIXEL_TOPIC, ConeLocationPixel, self.cone_detection_callback)
-        self.cone_pub = rospy.Publisher("/relative_cone", ConeLocation, queue_size=10)
+        self.cone_pub = rospy.Publisher("/relative_stop", ConeLocation, queue_size=10)
 
         self.marker_pub = rospy.Publisher("/cone_marker",
             Marker, queue_size=1)
