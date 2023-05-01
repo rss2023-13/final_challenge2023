@@ -1,5 +1,5 @@
 <launch>
 	<node pkg="citydriving" type="trajectory_loader.py" name="Trajectory_loader">
-		<param name="trajectory" value="$(find citydriving)/trajectories/loop2.traj"/>
+		<param name="trajectory" value="$(find citydriving)/trajectories/p3-1.traj"/>
 	</node>
 </launch>
