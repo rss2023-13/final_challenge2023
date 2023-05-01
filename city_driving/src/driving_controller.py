@@ -17,16 +17,16 @@ class DrivingController():
     """
     def __init__(self):
         self.odom_topic       = rospy.get_param("~odom_topic", "/pf/pose/odom")
-        STOP_TOPIC = "/relative_stop"
+        STOP_TOPIC = "/clicked_point"
         #new subscriber for the stop signd detector at topic /stop_sign
-        rospy.Subscriber("/intersection", PointStamped,
-            self.lookahead_callback)
+        rospy.Subscriber("/intersection", PointStamped, self.lookahead_callback)
         #make state machine that changes from this stop_sign topic to look_ahead topic
-        rospy.Subscriber(STOP_TOPIC, ConeLocation,
-            self.stop_callback)
+        rospy.Subscriber(STOP_TOPIC, PointStamped, self.stop_callback)
 
         self.drive_pub = rospy.Publisher("/drive", AckermannDriveStamped, queue_size=1)
         self.pose_sub = rospy.Subscriber(self.odom_topic, Odometry, self.pose_callback, queue_size=1)
+
+        rospy.Subscriber("/odom", Odometry, self.vel_callback, queue_size=1)
 
         self.robot_pose = None
 
@@ -34,6 +34,12 @@ class DrivingController():
         self.stopping_distance = .9 #in front of stop sign
         self.relative_x = 0
         self.relative_y = 0
+        self.stop_x = None
+        self.stop_y = None
+
+        self.curr_velocity = 0
+        self.stop_time = None
+        self.just_stopped = False
 
         self.prev_angle = 0
         self.prev_time = rospy.get_time()
@@ -49,11 +55,14 @@ class DrivingController():
         self.already_stopped = False
         self.stopping = False
 
+    def vel_callback(self, odom):
+        self.curr_velocity = odom.twist.twist.linear.x
+
     def pose_callback(self, odom):
         self.robot_pose = odom.pose.pose
 
     def lookahead_callback(self, msg):
-        self.relative_x, self.relative_y = self.robot_to_world(msg.point.x, msg.point.y)
+        self.relative_x, self.relative_y = self.world_to_robot(msg.point.x, msg.point.y) #where lookahead is relative to robot
         drive_cmd = AckermannDriveStamped()
 
         #################################
@@ -63,45 +72,52 @@ class DrivingController():
         # Goal is to move the x_error and y_error to 0, where x_error = self.relative_x - self.parking_distance
         # and y_error = self.relative_y
         
-        #while there isn't a stop sign near
-        if not self.stopping:
+        y_error = self.relative_y
+        x_error = self.relative_x - self.parking_distance
+        angle = np.arctan2(self.relative_y, self.relative_x)
+        overall_error = np.linalg.norm([x_error, y_error])
 
-            y_error = self.relative_y
-            x_error = self.relative_x - self.parking_distance
-            angle = np.arctan2(self.relative_y, self.relative_x)
-            overall_error = np.linalg.norm([x_error, y_error])
+        current_time = rospy.get_time()
 
-            current_time = rospy.get_time()
+        angle_derivative = (angle - self.prev_angle)/(current_time - self.prev_time)
 
-            angle_derivative = (angle - self.prev_angle)/(current_time - self.prev_time)
+        steering_angle = self.steering_kp * angle + self.steering_kd*angle_derivative
 
-            steering_angle = self.steering_kp * angle + self.steering_kd*angle_derivative
+        # Set the velocity
+        if x_error >= 0:
+            velocity = self.velocity_kp * overall_error #error_to_use
+        else:
+            steering_angle = angle
+            velocity = .2 * overall_error
 
-            # Set the velocity
-            if x_error >= 0:
-                velocity = self.velocity_kp * overall_error #error_to_use
-            else:
-                steering_angle = angle
-                velocity = .2 * overall_error
+        drive_cmd.drive.steering_angle = steering_angle
+        drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
+        # rospy.loginfo("steering" + str(steering_angle))
 
-            print('y', y_error)
+        #################################
+        if self.stopping:
 
-    #        if y_error > 0.8:
-    #            velocity = 0
-    #            print('stopping', y_error)
-    #        elif y_error > 0.2:
-    #            steering_angle *= 2
+            if self.world_to_robot(self.stop_x, self.stop_y)[0] < 1.5 and self.curr_velocity != 0:
+                # within 1.5 meters of stop sign and velocity is still above approx 0
+                drive_cmd.drive.speed = 0
+                # print('STOPPING', self.world_to_robot(self.stop_x, self.stop_y)[0])
 
-            drive_cmd.drive.steering_angle = steering_angle
-            drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
-            # rospy.loginfo("steering" + str(steering_angle))
+            elif self.curr_velocity == 0:
+                # stopped at stop sign - velocity is approx 0
+                print('STOPPED')
+                if self.just_stopped: 
+                    self.just_stopped = False
+                    self.stop_time = rospy.get_time() # save the stopping time if we just reach v=0
+                if rospy.get_time() - self.stop_time > 2: #have stopped for 2sec (tune this)
+                    # remove stop sign coords because we have now stopped at it
+                    print('DONE')
+                    self.stop_x = None
+                    self.stop_y = None
+                    self.stopping = False
 
-            #################################
-
-            self.drive_pub.publish(drive_cmd)
-            self.prev_angle = angle
-            self.prev_time = current_time
-        # self.error_publisher()
+        self.drive_pub.publish(drive_cmd)
+        self.prev_angle = angle
+        self.prev_time = current_time
 
     def stop_callback(self, msg):
         """
@@ -112,54 +128,11 @@ class DrivingController():
         #stop sign location
         #add an if to see if x and y are 0 (or -1) or another indication that there isn't 
         #a visible stop sign near so we do not use the stop PID
-        rospy.loginfo("stopping state: " + self.stopping)
-        rospy.loginfo("already_stopped: " + self.already_stopped)
-        if not self.stopping and not self.already_stopped:
-            #sign detected, enter stopping state
-            self.stopping = True 
-        if self.stopping:
-            #homography points
-            self.relative_x, self.relative_y = msg.point.x, msg.point.y
 
-            drive_cmd = AckermannDriveStamped()
-            #eliminate y influence so car follows lookahead path
-            y_error = self.relative_y
-            x_error = self.relative_x - self.stopping_distance
-            #uncomment next 5 lines if y influence desired (meaning heading towards stop sign)
-
-            # angle = np.arctan2(self.relative_y, self.relative_x)
-            overall_error = np.linalg.norm([x_error, y_error])
-            # rospy.loginfo("angle = " + str(angle * 180 / np.pi))
-            # # we should not go in circles, stop sign guaranteed to be in front of car
-            
-            # steering_angle = self.steering_kp * angle
-
-
-            # Set the velocity
-            if x_error >= 0:
-                velocity = self.velocity_kp * overall_error 
-            elif x_error > -.05:
-                velocity = self.velocity_kp * y_error
-            else:
-                velocity = self.velocity_kp * x_error
-
-            if velocity < .05 :
-                #we are almost fully stopped so wait for 1 second?
-                #do some waiting ... maybe while(100)?
-
-                self.stopping = False
-
-                #now give up control and go back to lookahead callback
-                self.already_stopped = True
-
-            #don't modify steering angle, just velocity
-            ##drive_cmd.drive.steering_angle = steering_angle
-            drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
-
-            #################################
-
-            self.drive_pub.publish(drive_cmd)
-            self.error_publisher()
+        #homography points
+        self.stop_x, self.stop_y = msg.point.x, msg.point.y
+        self.just_stopped = True
+        self.stopping = True
 
     def error_publisher(self):
         """
@@ -178,7 +151,7 @@ class DrivingController():
         
         self.error_pub.publish(error_msg)
 
-    def robot_to_world(self, x, y):
+    def world_to_robot(self, x, y):
         angle = self.euler_from_quaternion(self.robot_pose.orientation)[2]
         rotation_matrix = np.array([[np.cos(angle), np.sin(angle), 0], 
                                     [-np.sin(angle), np.cos(angle), 0], 
