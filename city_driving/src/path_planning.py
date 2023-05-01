@@ -9,10 +9,12 @@ import time, os
 import tf.transformations as tf
 from utils import LineTrajectory
 # from scipy import ndimage
+from scipy.interpolate import UnivariateSpline
+
 from std_msgs.msg import Header
 import cv2
 
-NUM_GOALS = 2
+NUM_GOALS = 6
 
 class PathPlan(object):
     """ Listens for goal pose published by RViz and uses it to plan a path from
@@ -367,7 +369,7 @@ class PathPlan(object):
         print("number of goals:", len(goals), points)
         for i in range(len(points) - 1, 0, -1): #plan path in reverse (from end to start)
             print("planning from", points[i], "to", points[i-1])
-            new_segment = self.plan_path(start_point = points[i], end_point = points[i-1], step_size = 4, neighbor_radius = 6)
+            new_segment = self.plan_path(start_point = points[i], end_point = points[i-1], step_size = .7, neighbor_radius = 1)
             if path == []:
                 path = new_segment
             else:
@@ -375,8 +377,19 @@ class PathPlan(object):
             
             print("path", i, "done")
 
+        # # get spline
+        # all_x, all_y = zip(*path)
+        # xs = np.linspace(min(all_x), max(all_x), 25)
+        # spl = UnivariateSpline(all_x, all_y)
+        # y_spline = spl(xs)
+        # spl.set_smoothing_factor(0.8)
 
-        for pt in path: # populate trajectory object
+        # for i in range(len(xs)): # use spline path
+        #     point_obj = Point(x=xs[i], y=y_spline[i])
+        #     self.trajectory.addPoint(point_obj)            
+        
+        
+        for pt in path: # populate trajectory object # use normal path
             point_obj = Point(x=pt[0], y=pt[1])
             self.trajectory.addPoint(point_obj)
 
