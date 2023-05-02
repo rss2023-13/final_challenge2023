@@ -95,7 +95,7 @@ def get_lookahead_pixel(img_height, lines):
     """
     Given a set of good lines, determine a candidate for the lookahead point.
     """
-    y_desired = int(2/3 * img_height)
+    y_desired = int(2. / 3. * img_height)
     line_x_coordinates = []
     for line in lines:
         rho = line[0][0]
