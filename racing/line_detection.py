@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 import pdb
 import os
+
+# TODO (srinathm): Update the good line filtering parameters to remove more horizontal looking stuff
+ 
 #################### X-Y CONVENTIONS #########################
 # 0,0  X  > > > > >
 #
@@ -27,16 +30,24 @@ def get_lines(img):
     """
     Returns the list of lines in the images computed by the Hough transform
     """
+    print("ORIGINAL IMAGE")
+    image_print(img)
+    
     # First blur the image a bit for edge detection purposes
-    kernel_width = 11
+    kernel_width = 5
     kernel = np.ones((kernel_width,kernel_width),np.float32)/(kernel_width*kernel_width)
     img = cv2.filter2D(img,-1,kernel)
+    
+    # print("BLURRED IMAGE")
+    # image_print(img)
 
     # Create a mask. Threshold the RGB image to get only the white pixels
     lower_white = np.array([170, 170, 170])
     upper_white = np.array([255, 255, 255])
 
     img_edges = cv2.inRange(img, lower_white, upper_white)
+    print("COLOR FILTER MASKED IMAGE")
+    image_print(img_edges)
 
     # image_print(img_edges)
 
@@ -45,11 +56,17 @@ def get_lines(img):
     max_thresh = 200
     img_edges = cv2.Canny(img_edges,min_thresh,max_thresh)
 
+    print("EDGE DETECTION")
+    image_print(img_edges)
+
     # # Cut out the top portion of the image
-    mask_portion = 0.1
+    mask_portion = 0.25
     mask = np.zeros_like(img_edges)
     mask[int(mask_portion * mask.shape[0]):] = 1
     img_edges *= mask
+
+    print("CROPPED IMAGE")
+    image_print(img_edges)
 
     # hough transform
     rho = 1
@@ -142,5 +159,6 @@ def load_image(dir_name, img_num):
 
 # read in test images for our hough transform
 DIR_NAME = "img/johnson_lane4_run2"
-img_num = 12
-load_image(DIR_NAME, img_num)
+for img_num in range(1, 17+1):
+    # img_num = 12
+    load_image(DIR_NAME, img_num)
