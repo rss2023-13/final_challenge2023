@@ -95,25 +95,27 @@ class DrivingController():
         # rospy.loginfo("steering" + str(steering_angle))
 
         #################################
-        if self.stopping:
+        if self.stopping: #have seen stop sign
 
-            if self.world_to_robot(self.stop_x, self.stop_y)[0] < 1.5 and self.curr_velocity != 0:
-                # within 1.5 meters of stop sign and velocity is still above approx 0
-                drive_cmd.drive.speed = 0
-                # print('STOPPING', self.world_to_robot(self.stop_x, self.stop_y)[0])
-
-            elif self.curr_velocity == 0:
-                # stopped at stop sign - velocity is approx 0
-                print('STOPPED')
+            if self.curr_velocity == 0:
+                # stopped at stop sign - velocity is 0
                 if self.just_stopped: 
+                    print('just stopped')
                     self.just_stopped = False
-                    self.stop_time = rospy.get_time() # save the stopping time if we just reach v=0
-                if rospy.get_time() - self.stop_time > 2: #have stopped for 2sec (tune this)
+                    self.stop_time = rospy.get_time() # start timer if we just reach v=0
+                if rospy.get_time() - self.stop_time > 0.8: #have stopped for 2sec (tune this)
                     # remove stop sign coords because we have now stopped at it
                     print('DONE')
                     self.stop_x = None
                     self.stop_y = None
                     self.stopping = False
+                else:
+                    drive_cmd.drive.speed = 0 #else continue to override drive commands
+
+            elif self.world_to_robot(self.stop_x, self.stop_y)[0] < 1.2:
+                # within 1.2 meters of stop sign - issue stop command
+                print('setting to 0')
+                drive_cmd.drive.speed = 0
 
         self.drive_pub.publish(drive_cmd)
         self.prev_angle = angle
