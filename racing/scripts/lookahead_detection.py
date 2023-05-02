@@ -28,7 +28,7 @@ def get_lines(img):
     Returns the list of lines in the images computed by the Hough transform
     """
     # First blur the image a bit for edge detection purposes
-    kernel_width = 11
+    kernel_width = 5
     kernel = np.ones((kernel_width,kernel_width),np.float32)/(kernel_width*kernel_width)
     img = cv2.filter2D(img,-1,kernel)
 
@@ -46,7 +46,7 @@ def get_lines(img):
     img_edges = cv2.Canny(img_edges,min_thresh,max_thresh)
 
     # # Cut out the top portion of the image
-    mask_portion = 0.7
+    mask_portion = 0.25
     mask = np.zeros_like(img_edges)
     mask[int(mask_portion * mask.shape[0]):] = 1
     img_edges *= mask
