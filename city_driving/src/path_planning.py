@@ -14,7 +14,7 @@ from scipy.interpolate import UnivariateSpline
 from std_msgs.msg import Header
 import cv2
 
-NUM_GOALS = 6
+NUM_GOALS = 2
 
 class PathPlan(object):
     """ Listens for goal pose published by RViz and uses it to plan a path from
