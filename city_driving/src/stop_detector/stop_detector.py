@@ -49,7 +49,7 @@ def image_print(img):
 
 if __name__=="__main__":
     #rospy.init_node("stop_sign_detector")
-    img_path = "./test_images/10.png"
+    img_path = "./test_images/34.png"
     detect = SignDetector()
     detect.callback(img_msg = cv2.imread(img_path))
     #rospy.spin()
