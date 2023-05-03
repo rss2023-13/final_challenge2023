@@ -26,14 +26,17 @@ class ParkingController():
         self.relative_x = 0
         self.relative_y = 0
 
-        self.steering_kp = 1
-        self.steering_kd = 0
+        self.steering_kp = 0.2
+        self.steering_kd = 0.05
         self.steering_ki = 0
 
-        self.velocity_kp = 1.5
+        self.velocity_kp = 1.7
         self.velocity_kd = 0
         self.velocity_ki = 0
-        self.velocity_max = 1
+        self.velocity_max = 2
+
+        self.prev_time = rospy.get_time()
+        self.prev_angle = 0
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
@@ -53,12 +56,17 @@ class ParkingController():
         overall_error = np.linalg.norm([x_error, y_error])
         rospy.loginfo("angle = " + str(angle * 180 / np.pi))
         spin = (angle > np.pi / -4) and (angle < np.pi / 4)
+
+        current_time = rospy.get_time()
+
         if  not spin:
             steering_angle = .7
             velocity = self.velocity_max
         else:
             # Set the steering angle
-            steering_angle = self.steering_kp * angle
+            
+            angle_derivative = (angle - self.prev_angle) / (current_time - self.prev_time)
+            steering_angle = self.steering_kp * angle + self.steering_kd * angle_derivative
 
 
             # Set the velocity
@@ -70,6 +78,7 @@ class ParkingController():
                 velocity = self.velocity_kp * x_error
 
 
+
         drive_cmd.drive.steering_angle = steering_angle
         drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
 
@@ -77,6 +86,9 @@ class ParkingController():
 
         self.drive_pub.publish(drive_cmd)
         self.error_publisher()
+
+        self.prev_angle = angle
+        self.prev_time = current_time
 
     def error_publisher(self):
         """
