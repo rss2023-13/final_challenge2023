@@ -30,8 +30,8 @@ def get_lines(img):
     """
     Returns the list of lines in the images computed by the Hough transform
     """
-    print("ORIGINAL IMAGE")
-    image_print(img)
+    # print("ORIGINAL IMAGE")
+    # image_print(img)
     
     # First blur the image a bit for edge detection purposes
     kernel_width = 5
@@ -46,8 +46,9 @@ def get_lines(img):
     upper_white = np.array([255, 255, 255])
 
     img_edges = cv2.inRange(img, lower_white, upper_white)
-    print("COLOR FILTER MASKED IMAGE")
-    image_print(img_edges)
+
+    # print("COLOR FILTER MASKED IMAGE")
+    # image_print(img_edges)
 
     # image_print(img_edges)
 
@@ -56,8 +57,8 @@ def get_lines(img):
     max_thresh = 200
     img_edges = cv2.Canny(img_edges,min_thresh,max_thresh)
 
-    print("EDGE DETECTION")
-    image_print(img_edges)
+    # print("EDGE DETECTION")
+    # image_print(img_edges)
 
     # # Cut out the top portion of the image
     mask_portion = 0.25
@@ -65,8 +66,8 @@ def get_lines(img):
     mask[int(mask_portion * mask.shape[0]):] = 1
     img_edges *= mask
 
-    print("CROPPED IMAGE")
-    image_print(img_edges)
+    # print("CROPPED IMAGE")
+    # image_print(img_edges)
 
     # hough transform
     rho = 1
@@ -153,12 +154,14 @@ def load_image(dir_name, img_num):
     img_height = img_orig.shape[0]
     x_lookahead, y_lookahead = determine_lookahead_point(img_height, good_lines)
     lookahead_img = cv2.circle(cdst, (x_lookahead, y_lookahead), radius=10, color=(0,0,0), thickness=-1)
+    print("LOOKAHEAD POINT:", x_lookahead, y_lookahead)
     cv2.imshow("Lookahead", lookahead_img)
     cv2.waitKey()
     # print(x_lookahead, y_lookahead)
 
 # read in test images for our hough transform
 DIR_NAME = "img/johnson_lane4_run2"
-for img_num in range(1, 17+1):
+num_imgs = 12
+for img_num in range(1, num_imgs+1):
     # img_num = 12
     load_image(DIR_NAME, img_num)
