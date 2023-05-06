@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 import tf.transformations as tf
+import math
 
 from visual_servoing.msg import ConeLocation, ParkingError
 from ackermann_msgs.msg import AckermannDriveStamped
@@ -49,7 +50,7 @@ class DrivingController():
         self.steering_kp = 7
         self.steering_kd = 0
 
-        self.velocity_kp = 1.1
+        self.velocity_kp = 0.8
         self.velocity_max = 5
 
         self.already_stopped = False
@@ -75,6 +76,7 @@ class DrivingController():
         y_error = self.relative_y
         x_error = self.relative_x - self.parking_distance
         angle = np.arctan2(self.relative_y, self.relative_x)
+        print(angle)
         overall_error = np.linalg.norm([x_error, y_error])
 
         current_time = rospy.get_time()
@@ -83,12 +85,17 @@ class DrivingController():
 
         steering_angle = self.steering_kp * angle + self.steering_kd*angle_derivative
 
-        # Set the velocity
-        if x_error >= 0:
-            velocity = self.velocity_kp * overall_error #error_to_use
+        if abs(angle) > math.pi/2:
+            velocity = -self.velocity_kp
+            steering_angle = 0
         else:
-            steering_angle = angle
-            velocity = .2 * overall_error
+
+            # Set the velocity
+            if x_error >= 0:
+                velocity = self.velocity_kp * overall_error #error_to_use
+            else:
+                steering_angle = angle
+                velocity = .2 * overall_error
 
         drive_cmd.drive.steering_angle = steering_angle
         drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
