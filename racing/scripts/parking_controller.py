@@ -38,9 +38,15 @@ class ParkingController():
         self.prev_time = rospy.get_time()
         self.prev_angle = 0
 
+        self.tau = 0
+
+        # TODO Tune the following parameters: tau, steering kp, steering kd, velocity kp, velocity max
+        # TODO adjust settings to increase speed limit
+        # TODO add safety controller
+
     def relative_cone_callback(self, msg):
-        self.relative_x = msg.x_pos
-        self.relative_y = msg.y_pos
+        self.relative_x = msg.x_pos * (1 - self.tau) + self.relative_x * self.tau
+        self.relative_y = msg.y_pos * (1 - self.tau) + self.relative_y * self.tau
         drive_cmd = AckermannDriveStamped()
 
         #################################
