@@ -6,7 +6,6 @@ import numpy as np
 #from geometry_msgs.msg import Point
 from detector import StopSignDetector
 import matplotlib.pyplot as plt
-from IPython.display import display 
 
 class SignDetector:
     def __init__(self):
@@ -49,7 +48,7 @@ def image_print(img):
 
 if __name__=="__main__":
     #rospy.init_node("stop_sign_detector")
-    img_path = "./test_images/34.png"
+    img_path = "./test_images/9.png"
     detect = SignDetector()
     detect.callback(img_msg = cv2.imread(img_path))
     #rospy.spin()

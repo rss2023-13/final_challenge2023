@@ -18,11 +18,12 @@ class PurePursuit(object):
     """
     def __init__(self):
         self.odom_topic       = rospy.get_param("~odom_topic", "/pf/pose/odom")
-        self.lookahead        = 0.75 # 0.7 for v=1, 1 for v=2
+        self.lookahead        = 0.4 # 0.7 for v=1, 1 for v=2
         # self.wheelbase_length = # FILL IN #
         
         self.pose = None
         self.target_point = None
+        self.curr_min_segment_index = 0
 
         self.trajectory  = utils.LineTrajectory("/followed_trajectory")
         self.received_traj = False
@@ -48,6 +49,13 @@ class PurePursuit(object):
 
         if self.received_traj:
             min_segment_index, min_point, min_dist = self.min_dist(robot_position, self.trajectory.points)
+
+            if min_segment_index != self.curr_min_segment_index:
+                self.trajectory.points = self.trajectory.points[min_segment_index:]
+                min_segment_index -= 1
+
+            print(min_segment_index)
+
             self.min_point_pub.publish(PointStamped(point=Point(x=min_point[0], y=min_point[1], z=0), 
                                                 header=Header(frame_id="map")))
             intersection_exists, intersection = self.find_intersection(min_segment_index, robot_position)
