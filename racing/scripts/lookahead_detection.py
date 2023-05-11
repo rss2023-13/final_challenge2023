@@ -98,8 +98,12 @@ def get_lookahead_pixel(img_height, img_width, lines):
    # y_desired = int(2. / 3. * img_height)
     y_desired = 220
     # width_tol = 65
-
+    
+    # Calculate the x coordinate for each line, and separate the lines into left and right sides
+    left_lines = []
+    right_lines = []
     line_x_coordinates = []
+    
     for line in lines:
         rho = line[0][0]
         theta = line[0][1]
@@ -110,6 +114,32 @@ def get_lookahead_pixel(img_height, img_width, lines):
         x_shift_amt = (y_desired - y0)/a
         x_coord = x0 + x_shift_amt * (-b)
         line_x_coordinates.append(x_coord)
+        
+        # Calculate coordinate representing car's position
+        x_car, y_car = img_width/2., img_height
+
+        # A line is on the left side if at y_coord = y_car, the x_coord is on x_car
+        x_line_shift = (y_car - y0)/a
+        x_line_coord = x0 + x_line_shift * (-b)
+
+        if x_line_coord < x_car:
+            left_lines.append(x_coord)
+        elif x_line_coord > x_car:
+            right_lines.append(x_coord)
+
+    # Take a weighted average of the right and left side points to weight both sides equally.
+    # If only one side has lines then make the lookahead point the center
+    left_average = np.mean(left_lines)
+    right_average = np.mean(right_lines)
+    recover_dist = 20
+    if (len(left_lines) >= 1 and len(right_lines) >= 1):
+        center_point = int(np.mean([left_average, right_average]))
+    elif (len(left_lines) == 0):
+        # Nudge it slightly to the left if there are no visible lines to the left
+        center_point = int(img_width/2.) - recover_dist
+    else:
+        center_point = int(img_width/2.) + recover_dist
+
     # Take "unique" x coordinates to avoid double counting lines
     good_x_coordinates = []
     dist_tol = 20
@@ -120,10 +150,10 @@ def get_lookahead_pixel(img_height, img_width, lines):
                 add_this_coord = False
         if add_this_coord:
             good_x_coordinates.append(x_coord)
-    print(good_x_coordinates)
+    # print(good_x_coordinates)
     # Return the number of points as well
-    
-    center_point = np.mean(good_x_coordinates)
+    # center_point = int(np.mean(line_x_coordinates))
+    # center_point = int(np.mean(good_x_coordinates))
     # cam_x_coord = img_width / 2.
 
     # if cam_x_coord <= center_point + width_tol and cam_x_coord >= center_point - width_tol:
@@ -145,11 +175,12 @@ def lookahead_px_from_img(cv2_img):
     lines = get_lines(cv2_img)
     good_lines = filter_lines(lines) # exclude horizontal lines
 
+
+    img_height, img_width = cv2_img.shape[0], cv2_img.shape[1]
     cdst = draw_lines(cv2_img, good_lines, img_width)
 
 
     # Visualize the lookahead point
-    img_height, img_width = cv2_img.shape[0], cv2_img.shape[1]
     x_lookahead, y_lookahead = get_lookahead_pixel(img_height, img_width, good_lines)
     lookahead_img = cv2.circle(cdst, (x_lookahead, y_lookahead), radius=10, color=(0,0,0), thickness=-1)
 

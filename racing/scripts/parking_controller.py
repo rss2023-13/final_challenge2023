@@ -30,10 +30,10 @@ class ParkingController():
         self.steering_kd = 0.05
         self.steering_ki = 0
 
-        self.velocity_kp = 1.7
+        self.velocity_kp = 4
         self.velocity_kd = 0
         self.velocity_ki = 0
-        self.velocity_max = 2
+        self.velocity_max = 4
 
         self.prev_time = rospy.get_time()
         self.prev_angle = 0
@@ -86,7 +86,8 @@ class ParkingController():
 
 
         drive_cmd.drive.steering_angle = steering_angle
-        drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
+        drive_cmd.drive.speed = self.velocity_max
+        # drive_cmd.drive.speed = np.min([velocity, self.velocity_max])
 
         #################################
 
