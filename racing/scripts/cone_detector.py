@@ -48,7 +48,7 @@ class ConeDetector():
 
         img_orig = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
 
-        x_lookahead, y_lookahead = lookahead_px_from_img(img_orig)
+        x_lookahead, y_lookahead, lookahead_img = lookahead_px_from_img(img_orig)
 
         cone_loc = ConeLocationPixel()
         cone_loc.u = x_lookahead
@@ -56,7 +56,7 @@ class ConeDetector():
 
         self.cone_pub.publish(cone_loc)
 
-        debug_msg = self.bridge.cv2_to_imgmsg(img_orig, "bgr8")
+        debug_msg = self.bridge.cv2_to_imgmsg(lookahead_img, "bgr8")
         self.debug_pub.publish(debug_msg)
 
 

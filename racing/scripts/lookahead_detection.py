@@ -91,11 +91,14 @@ def filter_lines(lines):
             good_lines.append(line)
     return good_lines
 
-def get_lookahead_pixel(img_height, lines):
+def get_lookahead_pixel(img_height, img_width, lines):
     """
     Given a set of good lines, determine a candidate for the lookahead point.
     """
-    y_desired = int(2. / 3. * img_height)
+   # y_desired = int(2. / 3. * img_height)
+    y_desired = 220
+    # width_tol = 65
+
     line_x_coordinates = []
     for line in lines:
         rho = line[0][0]
@@ -118,7 +121,19 @@ def get_lookahead_pixel(img_height, lines):
         if add_this_coord:
             good_x_coordinates.append(x_coord)
     print(good_x_coordinates)
-    return int(np.mean(good_x_coordinates)), y_desired
+    # Return the number of points as well
+    
+    center_point = np.mean(good_x_coordinates)
+    # cam_x_coord = img_width / 2.
+
+    # if cam_x_coord <= center_point + width_tol and cam_x_coord >= center_point - width_tol:
+    #     return int(cam_x_coord), y_desired
+    # elif cam_x_coord >= center_point + width_tol:
+    #     return int(center_point + width_tol), y_desired
+    # else:
+    #     return int(center_point - 0.5*width_tol), y_desired
+
+    return center_point, y_desired
 
 def lookahead_px_from_img(cv2_img):
     """Given a cv2 image, return the lookahead pixel coordinates
@@ -130,9 +145,13 @@ def lookahead_px_from_img(cv2_img):
     lines = get_lines(cv2_img)
     good_lines = filter_lines(lines) # exclude horizontal lines
 
-    # Visualize the lookahead point
-    img_height = cv2_img.shape[0]
-    x_lookahead, y_lookahead = get_lookahead_pixel(img_height, good_lines)
+    cdst = draw_lines(cv2_img, good_lines, img_width)
 
-    return x_lookahead, y_lookahead
+
+    # Visualize the lookahead point
+    img_height, img_width = cv2_img.shape[0], cv2_img.shape[1]
+    x_lookahead, y_lookahead = get_lookahead_pixel(img_height, img_width, good_lines)
+    lookahead_img = cv2.circle(cdst, (x_lookahead, y_lookahead), radius=10, color=(0,0,0), thickness=-1)
+
+    return x_lookahead, y_lookahead, lookahead_img
 
