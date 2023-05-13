@@ -17,4 +17,6 @@
 
   <node pkg="image_transport" name="republish" type="republish" args="raw in:=/cone_debug_img out:=/cone_debug_img_compressed" output="screen"></node>
 
+  <node pkg="safety_controller" name="safety_controller" type="safety_controller.py" output="screen">
+  </node>
 </launch>
