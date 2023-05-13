@@ -131,14 +131,19 @@ def get_lookahead_pixel(img_height, img_width, lines):
     # If only one side has lines then make the lookahead point the center
     left_average = np.mean(left_lines)
     right_average = np.mean(right_lines)
-    recover_dist = 20
+    recover_dist = 100 # 100 for 4 m/s, 50 for 5 m/s, 25 for 6 m/s
     if (len(left_lines) >= 1 and len(right_lines) >= 1):
         center_point = int(np.mean([left_average, right_average]))
     elif (len(left_lines) == 0):
+        print("RECOVER TO THE LEFT")
         # Nudge it slightly to the left if there are no visible lines to the left
         center_point = int(img_width/2.) - recover_dist
-    else:
+    elif (len(left_lines) >= 1 and len(right_lines) == 0):
+        print("RECOVER TO THE RIGHT")
         center_point = int(img_width/2.) + recover_dist
+    else:
+        print("NO LINES SEEN")
+        center_point = int(img_width/2.)
 
     # Take "unique" x coordinates to avoid double counting lines
     good_x_coordinates = []
